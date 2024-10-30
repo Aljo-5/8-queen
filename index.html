@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>8 Queens Puzzle</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            margin: 20px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            gap: 1px;
+            background-color: #ccc;
+            border: 1px solid #999;
+        }
+
+        .cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 30px;
+            user-select: none;
+        }
+
+        .white {
+            background-color: #fff;
+        }
+
+        .black {
+            background-color: #999;
+        }
+
+        .queen {
+            color: #d4af37;
+        }
+
+        .attacked {
+            background-color: #ff000033;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .status {
+            margin-top: 10px;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .queen-count {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>8 Queens Puzzle</h1>
+        <div class="queen-count">Queens placed: <span id="queenCount">0</span>/8</div>
+        <div class="board" id="board"></div>
+        <div class="controls">
+            <button onclick="resetBoard()">Reset Board</button>
+            <button onclick="checkSolution()">Check Solution</button>
+        </div>
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        let board = Array(8).fill().map(() => Array(8).fill(false));
+        let queenCount = 0;
+
+        function createBoard() {
+            const boardElement = document.getElementById('board');
+            boardElement.innerHTML = '';
+
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = `cell ${(i + j) % 2 === 0 ? 'white' : 'black'}`;
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.addEventListener('click', handleCellClick);
+                    boardElement.appendChild(cell);
+                }
+            }
+        }
+
+        function handleCellClick(event) {
+            const row = parseInt(event.target.dataset.row);
+            const col = parseInt(event.target.dataset.col);
+
+            if (board[row][col]) {
+                // Remove queen
+                board[row][col] = false;
+                event.target.innerHTML = '';
+                queenCount--;
+            } else if (queenCount < 8) {
+                // Add queen if less than 8 queens are on the board
+                board[row][col] = true;
+                event.target.innerHTML = '♕';
+                event.target.classList.add('queen');
+                queenCount++;
+            }
+
+            document.getElementById('queenCount').textContent = queenCount;
+            updateAttackedCells();
+            document.getElementById('status').textContent = '';
+        }
+
+        function updateAttackedCells() {
+            // Reset all cells
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => cell.classList.remove('attacked'));
+
+            // Mark attacked cells
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    if (board[row][col]) {
+                        markAttackedCells(row, col);
+                    }
+                }
+            }
+        }
+
+        function markAttackedCells(queenRow, queenCol) {
+            const directions = [
+                [-1,-1], [-1,0], [-1,1],
+                [0,-1],          [0,1],
+                [1,-1],  [1,0],  [1,1]
+            ];
+
+            directions.forEach(([dx, dy]) => {
+                let row = queenRow + dx;
+                let col = queenCol + dy;
+
+                while (row >= 0 && row < 8 && col >= 0 && col < 8) {
+                    const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                    if (!board[row][col]) {
+                        cell.classList.add('attacked');
+                    }
+                    row += dx;
+                    col += dy;
+                }
+            });
+        }
+
+        function checkSolution() {
+            const status = document.getElementById('status');
+
+            if (queenCount !== 8) {
+                status.textContent = 'Place exactly 8 queens on the board!';
+                status.style.color = '#ff0000';
+                return;
+            }
+
+            // Check for attacks
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    if (board[row][col] && isAttacked(row, col)) {
+                        status.textContent = 'Some queens are attacking each other. Try again!';
+                        status.style.color = '#ff0000';
+                        return;
+                    }
+                }
+            }
+
+            status.textContent = 'Congratulations! You solved the puzzle!';
+            status.style.color = '#008000';
+        }
+
+        function isAttacked(row, col) {
+            // Check all directions except the queen's own position
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    if (board[i][j] && (i !== row || j !== col)) {
+                        if (i === row || j === col || 
+                            Math.abs(i - row) === Math.abs(j - col)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        function resetBoard() {
+            board = Array(8).fill().map(() => Array(8).fill(false));
+            queenCount = 0;
+            document.getElementById('queenCount').textContent = queenCount;
+            document.getElementById('status').textContent = '';
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach(cell => {
+                cell.innerHTML = '';
+                cell.classList.remove('queen', 'attacked');
+            });
+        }
+
+        // Initialize the board when the page loads
+        createBoard();
+    </script>
+</body>
+</html>
